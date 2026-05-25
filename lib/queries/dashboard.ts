@@ -32,10 +32,23 @@ export async function getDashboardData() {
 
   const porPersona = users.map((u) => {
     const movsPersona = movs.filter((m) => m.persona_id === u.id);
-    const balance = movsPersona.reduce((s, m) => s + Number(m.valor), 0);
+
+    // Gastos reembolsados son neutros para quien pagó (recuperó el dinero)
+    const balancePropios = movsPersona
+      .filter((m) => m.estado !== "Reembolsado")
+      .reduce((s, m) => s + Number(m.valor), 0);
+
+    // Reembolsos que esta persona pagó a otros
+    const reembolsosPagados = movs
+      .filter((m) => m.reembolso_por_id === u.id && m.estado === "Reembolsado")
+      .reduce((s, m) => s + Math.abs(Number(m.valor)), 0);
+
+    const balance = balancePropios - reembolsosPagados;
+
     const pendiente = movsPersona
       .filter((m) => m.estado === "Pendiente reembolso")
       .reduce((s, m) => s + Math.abs(Number(m.valor)), 0);
+
     return { usuario: u, balance, pendiente, total: movsPersona.length };
   });
 
