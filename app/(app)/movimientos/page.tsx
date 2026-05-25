@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { SelectNative } from "@/components/ui/select-native";
 import { Input } from "@/components/ui/input";
 import { Plus, AlertTriangle } from "lucide-react";
+import { useRealtimeMovimientos } from "@/hooks/useRealtimeMovimientos";
 import type { Movimiento, Usuario, Proyecto, MovimientoFormData, EstadoMovimiento } from "@/types";
 
 const COP = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
@@ -233,6 +234,7 @@ export default function MovimientosPage() {
   }
 
   useEffect(() => { cargar(); }, []);
+  useRealtimeMovimientos(currentUserId, cargar);
 
   const filtrados = useMemo(() => movimientos.filter((m) => {
     if (filtroPersona  && m.persona_id  !== filtroPersona)  return false;

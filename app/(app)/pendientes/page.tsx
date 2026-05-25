@@ -3,11 +3,13 @@
 import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { SelectNative } from "@/components/ui/select-native";
 import { Dialog } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { useRealtimeMovimientos } from "@/hooks/useRealtimeMovimientos";
 import type { Movimiento, Usuario } from "@/types";
 
 const COP = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
@@ -121,16 +123,20 @@ export default function PendientesPage() {
   const [filtroPersona, setFiltroPersona] = useState<string>("todos");
   const [loading, setLoading] = useState(true);
   const [movimientoSeleccionado, setMovimientoSeleccionado] = useState<Movimiento | null>(null);
+  const [currentUserId, setCurrentUserId] = useState("");
 
-  useEffect(() => {
-    async function cargar() {
-      const [movs, users] = await Promise.all([getPendientes(), getUsuarios()]);
-      setPendientes(movs);
-      setTodosUsuarios(users);
-      setLoading(false);
-    }
-    cargar();
-  }, []);
+  async function cargar() {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) setCurrentUserId(user.id);
+    const [movs, users] = await Promise.all([getPendientes(), getUsuarios()]);
+    setPendientes(movs);
+    setTodosUsuarios(users);
+    setLoading(false);
+  }
+
+  useEffect(() => { cargar(); }, []);
+  useRealtimeMovimientos(currentUserId, cargar);
 
   const usuariosFiltro = useMemo(() => {
     const unique = Object.values(

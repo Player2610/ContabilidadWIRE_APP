@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, TrendingUp, TrendingDown, Clock, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { useRealtimeMovimientos } from "@/hooks/useRealtimeMovimientos";
 import type { Usuario, Proyecto, MovimientoFormData } from "@/types";
 
 const COP = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
@@ -66,6 +67,7 @@ export default function DashboardPage() {
   }
 
   useEffect(() => { cargar(); }, []);
+  useRealtimeMovimientos(currentUserId, cargar);
 
   async function handleSave(formData: MovimientoFormData) {
     try {
