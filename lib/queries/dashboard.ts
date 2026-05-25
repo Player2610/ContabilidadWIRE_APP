@@ -22,7 +22,9 @@ export async function getDashboardData() {
 
   const delMes = movs.filter((m) => m.fecha.startsWith(mesActual));
 
-  const cajaGeneral = movs.reduce((s, m) => s + Number(m.valor), 0);
+  const cajaGeneral = movs
+    .filter((m) => m.afecta_caja !== false)
+    .reduce((s, m) => s + Number(m.valor), 0);
   const ingresosMes = delMes.filter((m) => m.valor > 0).reduce((s, m) => s + Number(m.valor), 0);
   const gastosMes = delMes.filter((m) => m.valor < 0).reduce((s, m) => s + Number(m.valor), 0);
   const balanceMes = ingresosMes + gastosMes;

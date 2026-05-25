@@ -50,6 +50,7 @@ export async function createMovimiento(data: MovimientoFormData, userId: string)
     categoria: data.categoria,
     tipo: data.tipo,
     estado: data.estado,
+    afecta_caja: data.esIngreso ? true : data.afecta_caja,
     creado_por: userId,
   });
   if (error) throw error;

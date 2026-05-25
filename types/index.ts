@@ -35,6 +35,7 @@ export interface Movimiento {
   categoria: CategoriaMovimiento;
   tipo: TipoMovimiento;
   estado: EstadoMovimiento;
+  afecta_caja: boolean;
   creado_por: string;
   creado_en: string;
   reembolso_por_id?: string;
@@ -56,4 +57,5 @@ export interface MovimientoFormData {
   categoria: CategoriaMovimiento;
   motivo: string;
   estado: EstadoMovimiento;
+  afecta_caja: boolean;
 }

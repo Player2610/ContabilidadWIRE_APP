@@ -36,6 +36,7 @@ const schema = z.object({
   categoria: z.enum(CATEGORIAS),
   motivo: z.string().min(1, "El motivo es requerido"),
   estado: z.enum(TODOS_ESTADOS),
+  afecta_caja: z.boolean(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -80,10 +81,12 @@ export function MovimientoForm({
       categoria: movimiento?.categoria ?? "Materiales",
       motivo: movimiento?.motivo ?? "",
       estado: movimiento?.estado ?? "Pagado",
+      afecta_caja: movimiento?.afecta_caja ?? true,
     },
   });
 
   const esIngreso = watch("esIngreso");
+  const afectaCaja = watch("afecta_caja");
 
   // Al cambiar de tipo, fijar el estado correcto automáticamente
   useEffect(() => {
@@ -179,6 +182,32 @@ export function MovimientoForm({
           )}
         </div>
       </div>
+
+      {/* Caja general — solo para gastos */}
+      {!esIngreso && (
+        <button
+          type="button"
+          onClick={() => setValue("afecta_caja", !afectaCaja)}
+          className={cn(
+            "w-full flex items-center justify-between px-3 py-2.5 rounded-md border text-sm transition-colors",
+            afectaCaja
+              ? "bg-blue-50 border-blue-300 text-blue-800"
+              : "bg-gray-50 border-gray-200 text-gray-500"
+          )}
+        >
+          <span className="font-medium">Sale de la caja general</span>
+          <span className={cn(
+            "w-5 h-5 rounded border-2 flex items-center justify-center shrink-0",
+            afectaCaja ? "bg-blue-500 border-blue-500" : "border-gray-300"
+          )}>
+            {afectaCaja && (
+              <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </span>
+        </button>
+      )}
 
       {/* Categoría */}
       <div className="space-y-1">
