@@ -42,8 +42,8 @@ export default function ProyectosPage() {
 
   useEffect(() => { cargar(); }, []);
 
-  async function handleCrear(nombre: string) {
-    await createProyecto(nombre);
+  async function handleCrear(nombre: string, cliente: string) {
+    await createProyecto(nombre, cliente);
     toast.success("Proyecto creado");
     setModalOpen(false);
     cargar();
@@ -123,8 +123,13 @@ function ProyectoCard({
     <div className="bg-white rounded-lg border overflow-hidden">
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold">{proyecto.nombre}</h3>
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${proyecto.activo ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+          <div>
+            <h3 className="font-semibold">{proyecto.nombre}</h3>
+            {proyecto.cliente && (
+              <p className="text-xs text-muted-foreground mt-0.5">Cliente: {proyecto.cliente}</p>
+            )}
+          </div>
+          <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${proyecto.activo ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
             {proyecto.activo ? "Activo" : "Inactivo"}
           </span>
         </div>

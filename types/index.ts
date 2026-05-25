@@ -8,6 +8,7 @@ export interface Usuario {
 export interface Proyecto {
   id: string;
   nombre: string;
+  cliente?: string;
   activo: boolean;
   creado_en: string;
 }

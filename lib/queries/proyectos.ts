@@ -40,13 +40,13 @@ export async function getMovimientosByProyecto(proyectoId: string) {
   return (data ?? []) as Movimiento[];
 }
 
-export async function createProyecto(nombre: string) {
+export async function createProyecto(nombre: string, cliente?: string) {
   const supabase = createClient();
-  const { error } = await supabase.from("proyectos").insert({ nombre });
+  const { error } = await supabase.from("proyectos").insert({ nombre, cliente: cliente || null });
   if (error) throw error;
 }
 
-export async function updateProyecto(id: string, data: { nombre?: string; activo?: boolean }) {
+export async function updateProyecto(id: string, data: { nombre?: string; cliente?: string; activo?: boolean }) {
   const supabase = createClient();
   const { error } = await supabase.from("proyectos").update(data).eq("id", id);
   if (error) throw error;

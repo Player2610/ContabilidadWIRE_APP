@@ -67,9 +67,9 @@ export default function ProyectoDetallePage() {
 
   const COLORES = ["#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#6366f1", "#f97316", "#14b8a6"];
 
-  async function handleEditar(nombre: string) {
+  async function handleEditar(nombre: string, cliente: string) {
     if (!proyecto) return;
-    await updateProyecto(proyecto.id, { nombre });
+    await updateProyecto(proyecto.id, { nombre, cliente: cliente || null as unknown as string });
     toast.success("Proyecto actualizado");
     setEditOpen(false);
     cargar();
@@ -109,11 +109,19 @@ export default function ProyectoDetallePage() {
           <ArrowLeft size={20} />
         </Link>
         <div className="flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl font-bold">{proyecto.nombre}</h1>
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${proyecto.activo ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
               {proyecto.activo ? "Activo" : "Inactivo"}
             </span>
+          </div>
+          <div className="flex flex-wrap gap-4 mt-1 text-sm text-muted-foreground">
+            {proyecto.cliente && (
+              <span>Cliente: <span className="font-medium text-foreground">{proyecto.cliente}</span></span>
+            )}
+            <span>Creado: <span className="font-medium text-foreground">
+              {new Date(proyecto.creado_en).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })}
+            </span></span>
           </div>
         </div>
         <div className="flex gap-2">
@@ -192,6 +200,7 @@ export default function ProyectoDetallePage() {
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} title="Editar proyecto">
         <ProyectoForm
           nombreInicial={proyecto.nombre}
+          clienteInicial={proyecto.cliente ?? ""}
           onSave={handleEditar}
           onCancel={() => setEditOpen(false)}
         />

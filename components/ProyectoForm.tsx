@@ -7,12 +7,14 @@ import { Label } from "@/components/ui/label";
 
 interface Props {
   nombreInicial?: string;
-  onSave: (nombre: string) => Promise<void>;
+  clienteInicial?: string;
+  onSave: (nombre: string, cliente: string) => Promise<void>;
   onCancel: () => void;
 }
 
-export function ProyectoForm({ nombreInicial = "", onSave, onCancel }: Props) {
+export function ProyectoForm({ nombreInicial = "", clienteInicial = "", onSave, onCancel }: Props) {
   const [nombre, setNombre] = useState(nombreInicial);
+  const [cliente, setCliente] = useState(clienteInicial);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
 
@@ -21,7 +23,7 @@ export function ProyectoForm({ nombreInicial = "", onSave, onCancel }: Props) {
     if (!nombre.trim()) { setError("El nombre es requerido"); return; }
     setGuardando(true);
     try {
-      await onSave(nombre.trim());
+      await onSave(nombre.trim(), cliente.trim());
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -41,6 +43,15 @@ export function ProyectoForm({ nombreInicial = "", onSave, onCancel }: Props) {
           autoFocus
         />
         {error && <p className="text-xs text-red-500">{error}</p>}
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="cliente">Cliente <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+        <Input
+          id="cliente"
+          value={cliente}
+          onChange={(e) => setCliente(e.target.value)}
+          placeholder="Nombre del cliente"
+        />
       </div>
       <div className="flex gap-2">
         <Button type="submit" disabled={guardando} className="flex-1">
