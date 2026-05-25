@@ -85,16 +85,15 @@ export function MovimientoForm({
   });
 
   const esIngreso = watch("esIngreso");
-  const estadoActual = watch("estado");
-  const estadosDisponibles = esIngreso ? ESTADOS_INGRESO : ESTADOS_GASTO;
 
-  // Al cambiar de tipo, resetear el estado si el actual no aplica
+  // Al cambiar de tipo, fijar el estado correcto automáticamente
   useEffect(() => {
-    const validos = esIngreso ? ESTADOS_INGRESO : ESTADOS_GASTO;
-    if (!validos.includes(estadoActual as never)) {
+    if (!esIngreso) {
+      setValue("estado", "Pendiente reembolso");
+    } else {
       setValue("estado", "Pagado");
     }
-  }, [esIngreso, estadoActual, setValue]);
+  }, [esIngreso, setValue]);
 
   return (
     <form onSubmit={handleSubmit(onSave)} className="space-y-4">
@@ -167,12 +166,18 @@ export function MovimientoForm({
           </SelectNative>
         </div>
 
-        {/* Estado — opciones según ingreso/gasto */}
+        {/* Estado */}
         <div className="space-y-1">
           <Label htmlFor="estado">Estado</Label>
-          <SelectNative id="estado" {...register("estado")}>
-            {estadosDisponibles.map((e) => <option key={e} value={e}>{e}</option>)}
-          </SelectNative>
+          {esIngreso ? (
+            <SelectNative id="estado" {...register("estado")}>
+              {ESTADOS_INGRESO.map((e) => <option key={e} value={e}>{e}</option>)}
+            </SelectNative>
+          ) : (
+            <div className="flex h-9 w-full items-center rounded-md border border-input bg-gray-100 px-3 text-sm text-muted-foreground cursor-not-allowed">
+              Pendiente reembolso
+            </div>
+          )}
         </div>
       </div>
 
