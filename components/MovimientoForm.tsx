@@ -90,8 +90,10 @@ export function MovimientoForm({
 
   // Estado automático según tipo y fuente del pago
   useEffect(() => {
-    if (esIngreso || afectaCaja) {
+    if (esIngreso) {
       setValue("estado", "Pagado");
+    } else if (afectaCaja) {
+      setValue("estado", "Reembolsado");
     } else {
       setValue("estado", "Pendiente reembolso");
     }
@@ -177,7 +179,7 @@ export function MovimientoForm({
             </SelectNative>
           ) : (
             <div className="flex h-9 w-full items-center rounded-md border border-input bg-gray-100 px-3 text-sm text-muted-foreground cursor-not-allowed">
-              {afectaCaja ? "Pagado (de caja)" : "Pendiente reembolso"}
+              {afectaCaja ? "Reembolsado (de caja)" : "Pendiente reembolso"}
             </div>
           )}
         </div>
