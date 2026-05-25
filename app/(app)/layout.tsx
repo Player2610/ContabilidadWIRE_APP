@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { LogoutButton } from "@/components/LogoutButton";
+import { Toaster } from "sonner";
 import { LayoutDashboard, ArrowLeftRight, Clock, FolderOpen } from "lucide-react";
 
 const navLinks = [
@@ -61,6 +62,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </nav>
       {/* Espaciado para nav inferior en móvil */}
       <div className="md:hidden h-16" />
+      <Toaster richColors position="top-right" />
     </div>
   );
 }
