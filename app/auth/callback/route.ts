@@ -16,11 +16,11 @@ export async function GET(request: Request) {
       if (user) {
         const { data: usuario } = await supabase
           .from("usuarios")
-          .select("id")
+          .select("id, activo")
           .eq("id", user.id)
           .maybeSingle();
 
-        if (!usuario) {
+        if (!usuario || usuario.activo === false) {
           await supabase.auth.signOut();
           return NextResponse.redirect(`${origin}/login?error=no_access`);
         }
