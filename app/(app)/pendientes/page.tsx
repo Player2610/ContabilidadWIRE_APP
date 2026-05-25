@@ -38,7 +38,7 @@ async function marcarReembolsado(id: string, reembolso_por_id: string, reembolso
   const supabase = createClient();
   const { error } = await supabase
     .from("movimientos")
-    .update({ estado: "Reembolsado", reembolso_por_id, reembolso_tipo })
+    .update({ estado: "Reembolsado", reembolso_por_id, reembolso_tipo, reembolsado_en: new Date().toISOString() })
     .eq("id", id);
   if (error) throw error;
 }

@@ -36,8 +36,13 @@ export interface Movimiento {
   estado: EstadoMovimiento;
   creado_por: string;
   creado_en: string;
+  reembolso_por_id?: string;
+  reembolso_tipo?: string;
+  reembolsado_en?: string;
   persona?: Pick<Usuario, "id" | "nombre" | "email">;
   proyecto?: Pick<Proyecto, "id" | "nombre">;
+  creado_por_usuario?: Pick<Usuario, "id" | "nombre">;
+  reembolso_por?: Pick<Usuario, "id" | "nombre">;
 }
 
 export interface MovimientoFormData {
