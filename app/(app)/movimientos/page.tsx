@@ -159,6 +159,7 @@ function ConfirmacionCrear({
     { label: "Categoría", valor: data.categoria },
     { label: "Tipo pago", valor: data.tipo },
     { label: "Estado",    valor: data.estado },
+    ...(!esIngreso ? [{ label: "Caja general", valor: data.afecta_caja ? "Sí" : "No" }] : []),
     { label: "Motivo",    valor: data.motivo },
   ];
 

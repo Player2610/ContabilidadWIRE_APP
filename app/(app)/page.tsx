@@ -6,7 +6,7 @@ import { getProyectos, getUsuarios, createMovimiento } from "@/lib/queries/movim
 import { MovimientoForm } from "@/components/MovimientoForm";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, TrendingUp, TrendingDown, Clock, Wallet } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Clock, Wallet, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { useRealtimeMovimientos } from "@/hooks/useRealtimeMovimientos";
@@ -50,6 +50,7 @@ export default function DashboardPage() {
   const [currentUserId, setCurrentUserId] = useState("");
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [pendingData, setPendingData] = useState<MovimientoFormData | null>(null);
 
   async function cargar() {
     const supabase = createClient();
@@ -70,10 +71,16 @@ export default function DashboardPage() {
   useRealtimeMovimientos(currentUserId, cargar);
 
   async function handleSave(formData: MovimientoFormData) {
+    setPendingData(formData);
+    setModalOpen(false);
+  }
+
+  async function handleConfirmar() {
+    if (!pendingData) return;
     try {
-      await createMovimiento(formData, currentUserId);
+      await createMovimiento(pendingData, currentUserId);
       toast.success("Movimiento creado");
-      setModalOpen(false);
+      setPendingData(null);
       cargar();
     } catch (e) {
       toast.error("Error al guardar: " + (e as Error).message);
@@ -216,6 +223,82 @@ export default function DashboardPage() {
           onCancel={() => setModalOpen(false)}
         />
       </Dialog>
+
+      <Dialog
+        open={!!pendingData}
+        onClose={() => { setPendingData(null); setModalOpen(true); }}
+        title="Confirmar movimiento"
+      >
+        {pendingData && (
+          <ConfirmacionDashboard
+            data={pendingData}
+            usuarios={usuarios}
+            proyectos={proyectos}
+            onConfirmar={handleConfirmar}
+            onVolver={() => { setPendingData(null); setModalOpen(true); }}
+          />
+        )}
+      </Dialog>
+    </div>
+  );
+}
+
+function ConfirmacionDashboard({
+  data, usuarios, proyectos, onConfirmar, onVolver,
+}: {
+  data: MovimientoFormData;
+  usuarios: Usuario[];
+  proyectos: Proyecto[];
+  onConfirmar: () => Promise<void>;
+  onVolver: () => void;
+}) {
+  const [guardando, setGuardando] = useState(false);
+  const persona = usuarios.find((u) => u.id === data.persona_id);
+  const proyecto = proyectos.find((p) => p.id === data.proyecto_id);
+  const esIngreso = data.esIngreso;
+
+  const filas = [
+    { label: "Tipo",      valor: esIngreso ? "Ingreso" : "Gasto" },
+    { label: "Fecha",     valor: data.fecha },
+    { label: "Valor",     valor: COP.format(data.valor) },
+    { label: "Persona",   valor: persona?.nombre ?? "—" },
+    { label: "Proyecto",  valor: proyecto?.nombre ?? "—" },
+    { label: "Categoría", valor: data.categoria },
+    { label: "Tipo pago", valor: data.tipo },
+    { label: "Estado",    valor: data.estado },
+    ...(!esIngreso ? [{ label: "Caja general", valor: data.afecta_caja ? "Sí" : "No" }] : []),
+    { label: "Motivo",    valor: data.motivo },
+  ];
+
+  async function handleConfirmar() {
+    setGuardando(true);
+    await onConfirmar();
+    setGuardando(false);
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+        <AlertTriangle size={18} className="text-yellow-600 shrink-0 mt-0.5" />
+        <p className="text-sm text-yellow-800">
+          <span className="font-semibold">Revisa bien antes de confirmar.</span> Una vez guardado,
+          este movimiento no podrá ser modificado.
+        </p>
+      </div>
+      <div className="divide-y border rounded-lg overflow-hidden text-sm">
+        {filas.map(({ label, valor }) => (
+          <div key={label} className="flex px-3 py-2">
+            <span className="w-28 shrink-0 text-muted-foreground">{label}</span>
+            <span className="font-medium">{valor}</span>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <Button variant="outline" onClick={onVolver} disabled={guardando}>Volver</Button>
+        <Button className="flex-1" onClick={handleConfirmar} disabled={guardando}>
+          {guardando ? "Guardando..." : "Confirmar y guardar"}
+        </Button>
+      </div>
     </div>
   );
 }
