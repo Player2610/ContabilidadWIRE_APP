@@ -128,17 +128,22 @@ export default function DashboardPage() {
         <div className="bg-white rounded-lg border p-4">
           <h2 className="font-semibold mb-4">Balance por persona</h2>
           <div className="space-y-4">
-            {data.porPersona.map(({ usuario, balance, pendiente }) => (
+            {data.porPersona.map(({ usuario, balance, pendiente, gastosEnCaja }) => (
               <div key={usuario.id}>
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-sm font-medium">{usuario.nombre}</span>
-                  <div className="text-right">
-                    <span className={`text-sm font-bold ${balance >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  <div className="text-right space-y-0.5">
+                    <span className={`text-sm font-bold block ${balance >= 0 ? "text-green-600" : "text-red-600"}`}>
                       {COP.format(balance)}
                     </span>
                     {pendiente > 0 && (
                       <span className="text-xs text-yellow-600 block">
-                        {COP.format(pendiente)} pendiente
+                        Caja debe: {COP.format(pendiente)}
+                      </span>
+                    )}
+                    {gastosEnCaja > 0 && (
+                      <span className="text-xs text-blue-500 block">
+                        Usó de caja: {COP.format(gastosEnCaja)}
                       </span>
                     )}
                   </div>

@@ -88,14 +88,14 @@ export function MovimientoForm({
   const esIngreso = watch("esIngreso");
   const afectaCaja = watch("afecta_caja");
 
-  // Al cambiar de tipo, fijar el estado correcto automáticamente
+  // Estado automático según tipo y fuente del pago
   useEffect(() => {
-    if (!esIngreso) {
-      setValue("estado", "Pendiente reembolso");
-    } else {
+    if (esIngreso || afectaCaja) {
       setValue("estado", "Pagado");
+    } else {
+      setValue("estado", "Pendiente reembolso");
     }
-  }, [esIngreso, setValue]);
+  }, [esIngreso, afectaCaja, setValue]);
 
   return (
     <form onSubmit={handleSubmit(onSave)} className="space-y-4">
@@ -177,7 +177,7 @@ export function MovimientoForm({
             </SelectNative>
           ) : (
             <div className="flex h-9 w-full items-center rounded-md border border-input bg-gray-100 px-3 text-sm text-muted-foreground cursor-not-allowed">
-              Pendiente reembolso
+              {afectaCaja ? "Pagado (de caja)" : "Pendiente reembolso"}
             </div>
           )}
         </div>
