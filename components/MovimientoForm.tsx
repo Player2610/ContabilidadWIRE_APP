@@ -24,7 +24,6 @@ const CATEGORIAS = [
   "Otros",
 ] as const;
 const ESTADOS_INGRESO = ["Pagado", "Pendiente por pagar"] as const;
-const ESTADOS_GASTO  = ["Pagado", "Pendiente reembolso", "Reembolsado"] as const;
 const TODOS_ESTADOS  = ["Pagado", "Pendiente por pagar", "Pendiente reembolso", "Reembolsado"] as const;
 
 const schema = z.object({

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -29,7 +29,6 @@ function estadoBadge(estado: EstadoMovimiento) {
 
 export default function ProyectoDetallePage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
 
   const [proyecto, setProyecto] = useState<Proyecto | null>(null);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
@@ -47,6 +46,7 @@ export default function ProyectoDetallePage() {
     setLoading(false);
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { cargar(); }, [id]);
 
   const ingresos = movimientos.filter((m) => m.valor > 0).reduce((s, m) => s + Number(m.valor), 0);
