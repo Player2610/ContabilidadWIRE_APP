@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -12,7 +13,6 @@ import { cn } from "@/lib/utils";
 import type { Movimiento, Usuario, Proyecto } from "@/types";
 
 const TIPOS = ["Efectivo", "Transferencia", "Tarjeta"] as const;
-const ESTADOS = ["Pagado", "Pendiente reembolso", "Reembolsado"] as const;
 const CATEGORIAS = [
   "Ingresos",
   "Materiales",
@@ -23,6 +23,9 @@ const CATEGORIAS = [
   "Marketing",
   "Otros",
 ] as const;
+const ESTADOS_INGRESO = ["Pagado", "Pendiente por pagar"] as const;
+const ESTADOS_GASTO  = ["Pagado", "Pendiente reembolso", "Reembolsado"] as const;
+const TODOS_ESTADOS  = ["Pagado", "Pendiente por pagar", "Pendiente reembolso", "Reembolsado"] as const;
 
 const schema = z.object({
   fecha: z.string().min(1, "La fecha es requerida"),
@@ -33,7 +36,7 @@ const schema = z.object({
   tipo: z.enum(TIPOS),
   categoria: z.enum(CATEGORIAS),
   motivo: z.string().min(1, "El motivo es requerido"),
-  estado: z.enum(ESTADOS),
+  estado: z.enum(TODOS_ESTADOS),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -82,6 +85,16 @@ export function MovimientoForm({
   });
 
   const esIngreso = watch("esIngreso");
+  const estadoActual = watch("estado");
+  const estadosDisponibles = esIngreso ? ESTADOS_INGRESO : ESTADOS_GASTO;
+
+  // Al cambiar de tipo, resetear el estado si el actual no aplica
+  useEffect(() => {
+    const validos = esIngreso ? ESTADOS_INGRESO : ESTADOS_GASTO;
+    if (!validos.includes(estadoActual as never)) {
+      setValue("estado", "Pagado");
+    }
+  }, [esIngreso, estadoActual, setValue]);
 
   return (
     <form onSubmit={handleSubmit(onSave)} className="space-y-4">
@@ -92,9 +105,7 @@ export function MovimientoForm({
           onClick={() => setValue("esIngreso", false)}
           className={cn(
             "flex-1 py-2 text-sm font-medium transition-colors",
-            !esIngreso
-              ? "bg-red-500 text-white"
-              : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+            !esIngreso ? "bg-red-500 text-white" : "bg-gray-50 text-gray-600 hover:bg-gray-100"
           )}
         >
           Gasto
@@ -104,9 +115,7 @@ export function MovimientoForm({
           onClick={() => setValue("esIngreso", true)}
           className={cn(
             "flex-1 py-2 text-sm font-medium transition-colors",
-            esIngreso
-              ? "bg-green-500 text-white"
-              : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+            esIngreso ? "bg-green-500 text-white" : "bg-gray-50 text-gray-600 hover:bg-gray-100"
           )}
         >
           Ingreso
@@ -124,14 +133,7 @@ export function MovimientoForm({
         {/* Valor */}
         <div className="space-y-1">
           <Label htmlFor="valor">Valor</Label>
-          <Input
-            id="valor"
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="0.00"
-            {...register("valor")}
-          />
+          <Input id="valor" type="number" step="0.01" min="0" placeholder="0.00" {...register("valor")} />
           {errors.valor && <p className="text-xs text-red-500">{errors.valor.message}</p>}
         </div>
       </div>
@@ -141,11 +143,7 @@ export function MovimientoForm({
         <Label htmlFor="persona_id">Persona</Label>
         <SelectNative id="persona_id" {...register("persona_id")}>
           <option value="">Seleccionar...</option>
-          {usuarios.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.nombre}
-            </option>
-          ))}
+          {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
         </SelectNative>
         {errors.persona_id && <p className="text-xs text-red-500">{errors.persona_id.message}</p>}
       </div>
@@ -155,11 +153,7 @@ export function MovimientoForm({
         <Label htmlFor="proyecto_id">Proyecto</Label>
         <SelectNative id="proyecto_id" {...register("proyecto_id")}>
           <option value="">Seleccionar...</option>
-          {proyectos.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nombre}
-            </option>
-          ))}
+          {proyectos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
         </SelectNative>
         {errors.proyecto_id && <p className="text-xs text-red-500">{errors.proyecto_id.message}</p>}
       </div>
@@ -173,11 +167,11 @@ export function MovimientoForm({
           </SelectNative>
         </div>
 
-        {/* Estado */}
+        {/* Estado — opciones según ingreso/gasto */}
         <div className="space-y-1">
           <Label htmlFor="estado">Estado</Label>
           <SelectNative id="estado" {...register("estado")}>
-            {ESTADOS.map((e) => <option key={e} value={e}>{e}</option>)}
+            {estadosDisponibles.map((e) => <option key={e} value={e}>{e}</option>)}
           </SelectNative>
         </div>
       </div>
@@ -193,12 +187,7 @@ export function MovimientoForm({
       {/* Motivo */}
       <div className="space-y-1">
         <Label htmlFor="motivo">Motivo</Label>
-        <Textarea
-          id="motivo"
-          placeholder="Descripción del movimiento..."
-          rows={2}
-          {...register("motivo")}
-        />
+        <Textarea id="motivo" placeholder="Descripción del movimiento..." rows={2} {...register("motivo")} />
         {errors.motivo && <p className="text-xs text-red-500">{errors.motivo.message}</p>}
       </div>
 
@@ -211,12 +200,7 @@ export function MovimientoForm({
           Cancelar
         </Button>
         {isEdit && onDelete && (
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={onDelete}
-            disabled={isSubmitting}
-          >
+          <Button type="button" variant="destructive" onClick={onDelete} disabled={isSubmitting}>
             Eliminar
           </Button>
         )}

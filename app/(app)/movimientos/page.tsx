@@ -23,8 +23,9 @@ import type { Movimiento, Usuario, Proyecto, MovimientoFormData, EstadoMovimient
 const COP = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
 
 function estadoBadge(estado: EstadoMovimiento) {
-  if (estado === "Pagado") return <Badge variant="success">{estado}</Badge>;
-  if (estado === "Reembolsado") return <Badge variant="info">{estado}</Badge>;
+  if (estado === "Pagado")              return <Badge variant="success">{estado}</Badge>;
+  if (estado === "Reembolsado")         return <Badge variant="info">{estado}</Badge>;
+  if (estado === "Pendiente por pagar") return <Badge variant="warning">{estado}</Badge>;
   return <Badge variant="warning">{estado}</Badge>;
 }
 
@@ -149,6 +150,7 @@ export default function MovimientosPage() {
           <option value="">Todos los estados</option>
           <option>Pagado</option>
           <option>Pendiente reembolso</option>
+          <option>Pendiente por pagar</option>
           <option>Reembolsado</option>
         </SelectNative>
         <Input type="date" value={filtroDesde} onChange={(e) => setFiltroDesde(e.target.value)} placeholder="Desde" />

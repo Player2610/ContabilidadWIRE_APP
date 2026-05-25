@@ -12,7 +12,7 @@ export interface Proyecto {
   creado_en: string;
 }
 
-export type EstadoMovimiento = "Pagado" | "Pendiente reembolso" | "Reembolsado";
+export type EstadoMovimiento = "Pagado" | "Pendiente reembolso" | "Reembolsado" | "Pendiente por pagar";
 export type TipoMovimiento = "Efectivo" | "Transferencia" | "Tarjeta";
 export type CategoriaMovimiento =
   | "Ingresos"
