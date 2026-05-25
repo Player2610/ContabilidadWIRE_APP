@@ -4,6 +4,9 @@ import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { SelectNative } from "@/components/ui/select-native";
+import { Dialog } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { Movimiento, Usuario } from "@/types";
 
@@ -24,38 +27,120 @@ async function getPendientes() {
   return (data ?? []) as Movimiento[];
 }
 
-async function marcarReembolsado(id: string) {
+async function getUsuarios() {
+  const supabase = createClient();
+  const { data, error } = await supabase.from("usuarios").select("*").order("nombre");
+  if (error) throw error;
+  return (data ?? []) as Usuario[];
+}
+
+async function marcarReembolsado(id: string, reembolso_por_id: string, reembolso_tipo: string) {
   const supabase = createClient();
   const { error } = await supabase
     .from("movimientos")
-    .update({ estado: "Reembolsado" })
+    .update({ estado: "Reembolsado", reembolso_por_id, reembolso_tipo })
     .eq("id", id);
   if (error) throw error;
 }
 
+interface ReembolsoDialogProps {
+  movimiento: Movimiento;
+  usuarios: Usuario[];
+  onConfirmar: (porId: string, tipo: string) => Promise<void>;
+  onCancelar: () => void;
+}
+
+function ReembolsoDialog({ movimiento, usuarios, onConfirmar, onCancelar }: ReembolsoDialogProps) {
+  const [porId, setPorId] = useState(usuarios[0]?.id ?? "");
+  const [tipo, setTipo] = useState("Efectivo");
+  const [guardando, setGuardando] = useState(false);
+
+  async function handleConfirmar() {
+    if (!porId) return;
+    setGuardando(true);
+    await onConfirmar(porId, tipo);
+    setGuardando(false);
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Resumen del movimiento */}
+      <div className="bg-gray-50 rounded-md p-3 text-sm space-y-1">
+        <p><span className="text-muted-foreground">Motivo:</span> <span className="font-medium">{movimiento.motivo}</span></p>
+        <p><span className="text-muted-foreground">Pagó originalmente:</span> <span className="font-medium">{movimiento.persona?.nombre}</span></p>
+        <p><span className="text-muted-foreground">Monto:</span> <span className="font-bold text-red-600">{COP.format(Math.abs(Number(movimiento.valor)))}</span></p>
+      </div>
+
+      {/* ¿Quién reembolsó? */}
+      <div className="space-y-1">
+        <Label>¿De qué persona salió el dinero del reembolso?</Label>
+        <SelectNative value={porId} onChange={(e) => setPorId(e.target.value)}>
+          {usuarios.map((u) => (
+            <option key={u.id} value={u.id}>{u.nombre}</option>
+          ))}
+        </SelectNative>
+      </div>
+
+      {/* Efectivo o transferencia */}
+      <div className="space-y-1">
+        <Label>¿Cómo se pagó?</Label>
+        <div className="flex rounded-md border overflow-hidden">
+          {["Efectivo", "Transferencia"].map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTipo(t)}
+              className={cn(
+                "flex-1 py-2 text-sm font-medium transition-colors",
+                tipo === t
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+              )}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex gap-2 pt-1">
+        <Button className="flex-1" onClick={handleConfirmar} disabled={guardando || !porId}>
+          {guardando ? "Guardando..." : "Confirmar reembolso"}
+        </Button>
+        <Button variant="outline" onClick={onCancelar} disabled={guardando}>
+          Cancelar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function PendientesPage() {
   const [pendientes, setPendientes] = useState<Movimiento[]>([]);
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [todosUsuarios, setTodosUsuarios] = useState<Usuario[]>([]);
   const [filtroPersona, setFiltroPersona] = useState<string>("todos");
   const [loading, setLoading] = useState(true);
-  const [marcando, setMarcando] = useState<string | null>(null);
+  const [movimientoSeleccionado, setMovimientoSeleccionado] = useState<Movimiento | null>(null);
 
   useEffect(() => {
     async function cargar() {
-      const movs = await getPendientes();
+      const [movs, users] = await Promise.all([getPendientes(), getUsuarios()]);
       setPendientes(movs);
-      // Extraer usuarios únicos de los movimientos
-      const unique = Object.values(
-        movs.reduce<Record<string, Usuario>>((acc, m) => {
-          if (m.persona) acc[m.persona_id] = m.persona as Usuario;
-          return acc;
-        }, {})
-      );
-      setUsuarios(unique);
+      setTodosUsuarios(users);
       setLoading(false);
     }
     cargar();
   }, []);
+
+  const usuariosFiltro = useMemo(() => {
+    const unique = Object.values(
+      pendientes.reduce<Record<string, Usuario>>((acc, m) => {
+        if (m.persona) acc[m.persona_id] = m.persona as Usuario;
+        return acc;
+      }, {})
+    );
+    return unique;
+  }, [pendientes]);
 
   const filtrados = useMemo(() =>
     filtroPersona === "todos"
@@ -67,7 +152,6 @@ export default function PendientesPage() {
   const totalGeneral = pendientes.reduce((s, m) => s + Math.abs(Number(m.valor)), 0);
   const totalFiltrado = filtrados.reduce((s, m) => s + Math.abs(Number(m.valor)), 0);
 
-  // Agrupar por persona
   const porPersona = useMemo(() => {
     const grupos: Record<string, { nombre: string; movimientos: Movimiento[] }> = {};
     filtrados.forEach((m) => {
@@ -78,16 +162,15 @@ export default function PendientesPage() {
     return Object.entries(grupos);
   }, [filtrados]);
 
-  async function handleMarcar(id: string) {
-    setMarcando(id);
+  async function handleConfirmarReembolso(porId: string, tipo: string) {
+    if (!movimientoSeleccionado) return;
     try {
-      await marcarReembolsado(id);
-      setPendientes((prev) => prev.filter((m) => m.id !== id));
-      toast.success("Marcado como reembolsado");
+      await marcarReembolsado(movimientoSeleccionado.id, porId, tipo);
+      setPendientes((prev) => prev.filter((m) => m.id !== movimientoSeleccionado.id));
+      setMovimientoSeleccionado(null);
+      toast.success("Reembolso confirmado");
     } catch (e) {
       toast.error("Error: " + (e as Error).message);
-    } finally {
-      setMarcando(null);
     }
   }
 
@@ -103,7 +186,6 @@ export default function PendientesPage() {
 
   return (
     <div className="space-y-5">
-      {/* Encabezado */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold">Pendientes de reembolso</h1>
@@ -116,7 +198,6 @@ export default function PendientesPage() {
       </div>
 
       {pendientes.length === 0 ? (
-        /* Todo al día */
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <span className="text-6xl mb-4">🎉</span>
           <h2 className="text-xl font-semibold">¡Todo al día!</h2>
@@ -137,7 +218,7 @@ export default function PendientesPage() {
             >
               Todos · {COP.format(totalGeneral)}
             </button>
-            {usuarios.map((u) => {
+            {usuariosFiltro.map((u) => {
               const total = pendientes
                 .filter((m) => m.persona_id === u.id)
                 .reduce((s, m) => s + Math.abs(Number(m.valor)), 0);
@@ -170,13 +251,10 @@ export default function PendientesPage() {
               const subtotal = movs.reduce((s, m) => s + Math.abs(Number(m.valor)), 0);
               return (
                 <div key={personaId} className="bg-white rounded-lg border overflow-hidden">
-                  {/* Header del grupo */}
                   <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b">
                     <span className="font-semibold">{nombre}</span>
                     <span className="text-red-600 font-semibold">{COP.format(subtotal)}</span>
                   </div>
-
-                  {/* Items */}
                   <div className="divide-y">
                     {movs.map((m) => (
                       <div key={m.id} className="flex items-center justify-between px-4 py-3 gap-3">
@@ -193,10 +271,9 @@ export default function PendientesPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            disabled={marcando === m.id}
-                            onClick={() => handleMarcar(m.id)}
+                            onClick={() => setMovimientoSeleccionado(m)}
                           >
-                            {marcando === m.id ? "..." : "Reembolsado"}
+                            Reembolsado
                           </Button>
                         </div>
                       </div>
@@ -208,6 +285,22 @@ export default function PendientesPage() {
           </div>
         </>
       )}
+
+      {/* Diálogo de confirmación de reembolso */}
+      <Dialog
+        open={!!movimientoSeleccionado}
+        onClose={() => setMovimientoSeleccionado(null)}
+        title="Confirmar reembolso"
+      >
+        {movimientoSeleccionado && (
+          <ReembolsoDialog
+            movimiento={movimientoSeleccionado}
+            usuarios={todosUsuarios}
+            onConfirmar={handleConfirmarReembolso}
+            onCancelar={() => setMovimientoSeleccionado(null)}
+          />
+        )}
+      </Dialog>
     </div>
   );
 }
