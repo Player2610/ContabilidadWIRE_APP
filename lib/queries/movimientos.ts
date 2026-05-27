@@ -56,6 +56,26 @@ export async function createMovimiento(data: MovimientoFormData, userId: string)
   if (error) throw error;
 }
 
+export async function getBalancesPersona(): Promise<Record<string, number>> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("movimientos")
+    .select("persona_id, valor, estado, afecta_caja, reembolso_por_id");
+  if (!data) return {};
+  const balances: Record<string, number> = {};
+  for (const m of data) {
+    if (Number(m.valor) > 0) {
+      balances[m.persona_id] = (balances[m.persona_id] ?? 0) + Number(m.valor);
+    } else if (m.afecta_caja !== false) {
+      balances[m.persona_id] = (balances[m.persona_id] ?? 0) + Number(m.valor);
+    }
+    if (m.reembolso_por_id && m.estado === "Reembolsado" && m.afecta_caja === false) {
+      balances[m.reembolso_por_id] = (balances[m.reembolso_por_id] ?? 0) - Math.abs(Number(m.valor));
+    }
+  }
+  return balances;
+}
+
 export async function deleteMovimiento(id: string) {
   const supabase = createClient();
   const { error } = await supabase.from("movimientos").delete().eq("id", id);

@@ -9,6 +9,7 @@ import {
   getProyectos,
   createMovimiento,
   deleteMovimiento,
+  getBalancesPersona,
 } from "@/lib/queries/movimientos";
 import { MovimientoForm } from "@/components/MovimientoForm";
 import { Dialog } from "@/components/ui/dialog";
@@ -207,6 +208,7 @@ export default function MovimientosPage() {
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [proyectos, setProyectos] = useState<Proyecto[]>([]);
+  const [balancesPersona, setBalancesPersona] = useState<Record<string, number>>({});
   const [currentUserId, setCurrentUserId] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -225,12 +227,13 @@ export default function MovimientosPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (user) setCurrentUserId(user.id);
-    const [movs, users, projs] = await Promise.all([
-      getMovimientos(), getUsuarios(), getProyectos(),
+    const [movs, users, projs, bals] = await Promise.all([
+      getMovimientos(), getUsuarios(), getProyectos(), getBalancesPersona(),
     ]);
     setMovimientos((movs as Movimiento[]) ?? []);
     setUsuarios((users as Usuario[]) ?? []);
     setProyectos((projs as Proyecto[]) ?? []);
+    setBalancesPersona(bals);
     setLoading(false);
   }
 
@@ -384,6 +387,7 @@ export default function MovimientosPage() {
           usuarios={usuarios}
           proyectos={proyectos}
           currentUserId={currentUserId}
+          balancesPersona={balancesPersona}
           onSave={async (data) => handleFormSubmit(data)}
           onCancel={() => setFormOpen(false)}
         />

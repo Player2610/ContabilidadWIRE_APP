@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getDashboardData } from "@/lib/queries/dashboard";
-import { getProyectos, getUsuarios, createMovimiento } from "@/lib/queries/movimientos";
+import { getProyectos, getUsuarios, createMovimiento, getBalancesPersona } from "@/lib/queries/movimientos";
 import { MovimientoForm } from "@/components/MovimientoForm";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashData | null>(null);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [proyectos, setProyectos] = useState<Proyecto[]>([]);
+  const [balancesPersona, setBalancesPersona] = useState<Record<string, number>>({});
   const [currentUserId, setCurrentUserId] = useState("");
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -56,14 +57,16 @@ export default function DashboardPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (user) setCurrentUserId(user.id);
-    const [dash, users, projs] = await Promise.all([
+    const [dash, users, projs, bals] = await Promise.all([
       getDashboardData(),
       getUsuarios(),
       getProyectos(),
+      getBalancesPersona(),
     ]);
     setData(dash);
     setUsuarios(users as Usuario[]);
     setProyectos(projs as Proyecto[]);
+    setBalancesPersona(bals);
     setLoading(false);
   }
 
@@ -219,6 +222,7 @@ export default function DashboardPage() {
           usuarios={usuarios}
           proyectos={proyectos}
           currentUserId={currentUserId}
+          balancesPersona={balancesPersona}
           onSave={handleSave}
           onCancel={() => setModalOpen(false)}
         />

@@ -46,6 +46,7 @@ interface Props {
   usuarios: Usuario[];
   proyectos: Proyecto[];
   currentUserId: string;
+  balancesPersona?: Record<string, number>;
   onSave: (data: FormValues) => Promise<void>;
   onDelete?: () => Promise<void>;
   onCancel: () => void;
@@ -56,6 +57,7 @@ export function MovimientoForm({
   usuarios,
   proyectos,
   currentUserId,
+  balancesPersona,
   onSave,
   onDelete,
   onCancel,
@@ -143,12 +145,42 @@ export function MovimientoForm({
 
       {/* Persona */}
       <div className="space-y-1">
-        <Label htmlFor="persona_id">Persona</Label>
-        <SelectNative id="persona_id" {...register("persona_id")}>
-          <option value="">Seleccionar...</option>
-          {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
-        </SelectNative>
-        {errors.persona_id && <p className="text-xs text-red-500">{errors.persona_id.message}</p>}
+        <Label>
+          {esIngreso ? "Persona" : afectaCaja ? "¿De qué parte de la caja sale?" : "¿Quién pagó?"}
+        </Label>
+        {!esIngreso && afectaCaja && balancesPersona ? (
+          <div className="space-y-1.5">
+            {usuarios.map((u) => {
+              const bal = balancesPersona[u.id] ?? 0;
+              const seleccionado = watch("persona_id") === u.id;
+              return (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => setValue("persona_id", u.id)}
+                  className={cn(
+                    "w-full flex items-center justify-between px-3 py-2 rounded-md border text-sm transition-colors",
+                    seleccionado ? "border-primary bg-primary/5" : "border-gray-200 bg-white hover:bg-gray-50"
+                  )}
+                >
+                  <span className="font-medium">{u.nombre}</span>
+                  <span className={cn("text-xs font-semibold", bal >= 0 ? "text-green-600" : "text-red-600")}>
+                    {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(bal)}
+                  </span>
+                </button>
+              );
+            })}
+            {errors.persona_id && <p className="text-xs text-red-500">{errors.persona_id.message}</p>}
+          </div>
+        ) : (
+          <>
+            <SelectNative id="persona_id" {...register("persona_id")}>
+              <option value="">Seleccionar...</option>
+              {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
+            </SelectNative>
+            {errors.persona_id && <p className="text-xs text-red-500">{errors.persona_id.message}</p>}
+          </>
+        )}
       </div>
 
       {/* Proyecto */}
