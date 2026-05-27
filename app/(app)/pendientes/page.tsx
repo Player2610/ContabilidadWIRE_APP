@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/client";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { SelectNative } from "@/components/ui/select-native";
 import { Dialog } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useRealtimeMovimientos } from "@/hooks/useRealtimeMovimientos";
@@ -36,6 +35,24 @@ async function getUsuarios() {
   return (data ?? []) as Usuario[];
 }
 
+async function getBalances(): Promise<Record<string, number>> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("movimientos")
+    .select("persona_id, valor, estado, afecta_caja, reembolso_por_id");
+  if (!data) return {};
+  const balances: Record<string, number> = {};
+  for (const m of data) {
+    if (Number(m.valor) > 0) {
+      balances[m.persona_id] = (balances[m.persona_id] ?? 0) + Number(m.valor);
+    }
+    if (m.reembolso_por_id && m.estado === "Reembolsado" && m.afecta_caja === false) {
+      balances[m.reembolso_por_id] = (balances[m.reembolso_por_id] ?? 0) - Math.abs(Number(m.valor));
+    }
+  }
+  return balances;
+}
+
 async function marcarReembolsado(id: string, reembolso_por_id: string, reembolso_tipo: string) {
   const supabase = createClient();
   const { error } = await supabase
@@ -48,11 +65,12 @@ async function marcarReembolsado(id: string, reembolso_por_id: string, reembolso
 interface ReembolsoDialogProps {
   movimiento: Movimiento;
   usuarios: Usuario[];
+  balances: Record<string, number>;
   onConfirmar: (porId: string, tipo: string) => Promise<void>;
   onCancelar: () => void;
 }
 
-function ReembolsoDialog({ movimiento, usuarios, onConfirmar, onCancelar }: ReembolsoDialogProps) {
+function ReembolsoDialog({ movimiento, usuarios, balances, onConfirmar, onCancelar }: ReembolsoDialogProps) {
   const [porId, setPorId] = useState(usuarios[0]?.id ?? "");
   const [tipo, setTipo] = useState("Efectivo");
   const [guardando, setGuardando] = useState(false);
@@ -73,14 +91,31 @@ function ReembolsoDialog({ movimiento, usuarios, onConfirmar, onCancelar }: Reem
         <p><span className="text-muted-foreground">Monto:</span> <span className="font-bold text-red-600">{COP.format(Math.abs(Number(movimiento.valor)))}</span></p>
       </div>
 
-      {/* ¿Quién reembolsó? */}
-      <div className="space-y-1">
-        <Label>¿De qué persona salió el dinero del reembolso?</Label>
-        <SelectNative value={porId} onChange={(e) => setPorId(e.target.value)}>
-          {usuarios.map((u) => (
-            <option key={u.id} value={u.id}>{u.nombre}</option>
-          ))}
-        </SelectNative>
+      {/* ¿Quién paga? — muestra balance actual de caja por persona */}
+      <div className="space-y-1.5">
+        <Label>¿Quién paga el reembolso?</Label>
+        <div className="space-y-1.5">
+          {usuarios.map((u) => {
+            const bal = balances[u.id] ?? 0;
+            const activo = porId === u.id;
+            return (
+              <button
+                key={u.id}
+                type="button"
+                onClick={() => setPorId(u.id)}
+                className={cn(
+                  "w-full flex items-center justify-between px-3 py-2 rounded-md border text-sm transition-colors",
+                  activo ? "border-primary bg-primary/5" : "border-gray-200 bg-white hover:bg-gray-50"
+                )}
+              >
+                <span className="font-medium">{u.nombre}</span>
+                <span className={cn("text-xs font-semibold", bal >= 0 ? "text-green-600" : "text-red-600")}>
+                  {COP.format(bal)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Efectivo o transferencia */}
@@ -120,6 +155,7 @@ function ReembolsoDialog({ movimiento, usuarios, onConfirmar, onCancelar }: Reem
 export default function PendientesPage() {
   const [pendientes, setPendientes] = useState<Movimiento[]>([]);
   const [todosUsuarios, setTodosUsuarios] = useState<Usuario[]>([]);
+  const [balancesPersona, setBalancesPersona] = useState<Record<string, number>>({});
   const [filtroPersona, setFiltroPersona] = useState<string>("todos");
   const [loading, setLoading] = useState(true);
   const [movimientoSeleccionado, setMovimientoSeleccionado] = useState<Movimiento | null>(null);
@@ -129,9 +165,10 @@ export default function PendientesPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (user) setCurrentUserId(user.id);
-    const [movs, users] = await Promise.all([getPendientes(), getUsuarios()]);
+    const [movs, users, bals] = await Promise.all([getPendientes(), getUsuarios(), getBalances()]);
     setPendientes(movs);
     setTodosUsuarios(users);
+    setBalancesPersona(bals);
     setLoading(false);
   }
 
@@ -302,6 +339,7 @@ export default function PendientesPage() {
           <ReembolsoDialog
             movimiento={movimientoSeleccionado}
             usuarios={todosUsuarios}
+            balances={balancesPersona}
             onConfirmar={handleConfirmarReembolso}
             onCancelar={() => setMovimientoSeleccionado(null)}
           />

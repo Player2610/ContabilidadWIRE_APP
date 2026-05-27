@@ -185,24 +185,24 @@ export function MovimientoForm({
         </div>
       </div>
 
-      {/* Caja general — solo para gastos */}
+      {/* Gasto fuera de caja — solo para gastos */}
       {!esIngreso && (
         <button
           type="button"
           onClick={() => setValue("afecta_caja", !afectaCaja)}
           className={cn(
             "w-full flex items-center justify-between px-3 py-2.5 rounded-md border text-sm transition-colors",
-            afectaCaja
-              ? "bg-blue-50 border-blue-300 text-blue-800"
+            !afectaCaja
+              ? "bg-orange-50 border-orange-300 text-orange-800"
               : "bg-gray-50 border-gray-200 text-gray-500"
           )}
         >
-          <span className="font-medium">Sale de la caja general</span>
+          <span className="font-medium">Gasto fuera de caja</span>
           <span className={cn(
             "w-5 h-5 rounded border-2 flex items-center justify-center shrink-0",
-            afectaCaja ? "bg-blue-500 border-blue-500" : "border-gray-300"
+            !afectaCaja ? "bg-orange-500 border-orange-500" : "border-gray-300"
           )}>
-            {afectaCaja && (
+            {!afectaCaja && (
               <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
