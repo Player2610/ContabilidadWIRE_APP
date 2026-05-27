@@ -39,28 +39,29 @@ export async function getDashboardData() {
   const porPersona = users.map((u) => {
     const movsPersona = movs.filter((m) => m.persona_id === u.id);
 
-    // Balance = ingresos aportados - reembolsos pagados (descuenta de su parte de caja)
+    // Ingresos que aportó a la caja
     const ingresosPropios = movsPersona
       .filter((m) => m.valor > 0)
       .reduce((s, m) => s + Number(m.valor), 0);
 
+    // Gastos de caja que registró (salen de su parte)
+    const gastosDeCaja = movsPersona
+      .filter((m) => m.valor < 0 && m.afecta_caja !== false)
+      .reduce((s, m) => s + Math.abs(Number(m.valor)), 0);
+
+    // Reembolsos que pagó a otros (salen de su parte)
     const reembolsosPagados = movs
       .filter((m) => m.reembolso_por_id === u.id && m.estado === "Reembolsado" && m.afecta_caja === false)
       .reduce((s, m) => s + Math.abs(Number(m.valor)), 0);
 
-    const balance = ingresosPropios - reembolsosPagados;
+    const balance = ingresosPropios - gastosDeCaja - reembolsosPagados;
 
-    // Lo que la caja le debe (gastos personales pendientes de reembolso)
+    // Gastos fuera de caja pendientes (la caja le debe esto)
     const pendiente = movsPersona
       .filter((m) => m.valor < 0 && m.afecta_caja === false && m.estado === "Pendiente reembolso")
       .reduce((s, m) => s + Math.abs(Number(m.valor)), 0);
 
-    // Cuánto ha gastado de caja (informativo)
-    const gastosEnCaja = movsPersona
-      .filter((m) => m.valor < 0 && m.afecta_caja !== false)
-      .reduce((s, m) => s + Math.abs(Number(m.valor)), 0);
-
-    return { usuario: u, balance, pendiente, gastosEnCaja, total: movsPersona.length };
+    return { usuario: u, balance, pendiente, total: movsPersona.length };
   });
 
   const porProyecto = projs.map((p) => {
