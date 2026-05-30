@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useRealtimeMovimientos } from "@/hooks/useRealtimeMovimientos";
+import { getBalancesPersona } from "@/lib/queries/movimientos";
 import type { Movimiento, Usuario } from "@/types";
 
 const COP = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
@@ -35,23 +36,6 @@ async function getUsuarios() {
   return (data ?? []) as Usuario[];
 }
 
-async function getBalances(): Promise<Record<string, number>> {
-  const supabase = createClient();
-  const { data } = await supabase
-    .from("movimientos")
-    .select("persona_id, valor, estado, afecta_caja, reembolso_por_id");
-  if (!data) return {};
-  const balances: Record<string, number> = {};
-  for (const m of data) {
-    if (Number(m.valor) > 0) {
-      balances[m.persona_id] = (balances[m.persona_id] ?? 0) + Number(m.valor);
-    }
-    if (m.reembolso_por_id && m.estado === "Reembolsado" && m.afecta_caja === false) {
-      balances[m.reembolso_por_id] = (balances[m.reembolso_por_id] ?? 0) - Math.abs(Number(m.valor));
-    }
-  }
-  return balances;
-}
 
 async function marcarReembolsado(id: string, reembolso_por_id: string, reembolso_tipo: string) {
   const supabase = createClient();
@@ -165,7 +149,7 @@ export default function PendientesPage() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (user) setCurrentUserId(user.id);
-    const [movs, users, bals] = await Promise.all([getPendientes(), getUsuarios(), getBalances()]);
+    const [movs, users, bals] = await Promise.all([getPendientes(), getUsuarios(), getBalancesPersona()]);
     setPendientes(movs);
     setTodosUsuarios(users);
     setBalancesPersona(bals);
